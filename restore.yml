@@ -1,0 +1,112 @@
+- name: Restore machine
+  hosts: 127.0.0.1
+  connection: local
+
+  tasks:
+
+  - name: Update host
+    yum: name=* state=latest
+
+  - name: Install essential packages
+    yum: name={{item}} state=latest
+    with_items:
+      - autokey-gtk
+      - meld
+      - terminator
+      - gnome-tweak-tool
+      - gparted
+      - telnet
+      - keepassx
+      - httpie
+      - oathtool
+      - unzip
+      - xclip
+      - p7zip
+      - git
+      - alacarte
+      - NetworkManager-vpnc
+      - NetworkManager-openvpn
+      - vpnc
+      - openvpn
+
+  - name: Install nautilus extensions
+    yum: name={{item}} state=latest
+    with_items:
+      - nautilus-dropbox
+      - nautilus-open-terminal
+      - nautilus-extensions
+      - nautilus-sendto
+
+  - name: Install KVM
+    yum: name={{item}} state=latest
+    with_items:
+      - @virtualization
+      - virt-install
+      - virt-viewer
+      - libvirt-daemon-config-network
+
+  - name: Add user to docker group
+    shell: usermod -aG libvirt gustavo
+
+  - name: Enable libvirtd and start it
+    service: name=libvirtd enabled=yes state=started
+
+  - name: Create apps folder
+    file: path=/home/gustavo/apps state=directory owner=gustavo group=gustavo
+
+  - name: Create fonts folder
+    file: path=/home/gustavo/.fonts/ state=directory owner=gustavo group=gustavo
+
+  - name: Install fonts
+    shell: unzip fonts.zip -d /home/gustavo/.fonts/meslo
+
+  - name: Install google chrome
+    shell: dnf install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+
+  - name: Install Atom
+    shell: curl -L https://atom.io/download/rpm -o /tmp/atom.rpm && dnf install -y /tmp/atom.rpm
+
+  - name: Install atoms sync-settings plugins
+    shell: apm install sync-settings
+
+  - name: Install Sublime
+    shell: curl https://download.sublimetext.com/sublime_text_3_build_3126_x64.tar.bz2 -o /tmp/sublime.tar.bz2 && tar -jxvf /tmp/sublime.tar.bz2 -C /home/gustavo/apps/
+
+  - name: Install Dropbox
+    shell: dnf install -y https://www.dropbox.com/download?dl=packages/fedora/nautilus-dropbox-2015.10.28-1.fedora.x86_64.rpm
+
+  - name: Install telegram
+    shell: curl -L https://telegram.org/dl/desktop/linux -o /tmp/telegram.tar.xz && tar -zxvf /tmp/telegram.tar.xz -C /home/gustavo/apps
+
+  - name: Install teamviewer
+    shell: dnf install -y https://download.teamviewer.com/download/teamviewer.i686.rpm
+
+  - name: Install xmind
+    shell: curl https://www.xmind.net/xmind/downloads/xmind-8-linux.zip -o /tmp/xmind-8-linux.zip && unzip /tmp/xmind-8-linux.zip -d /home/gustavo/apps
+
+  - name: Install jd-gui
+    shell: curl https://github.com/java-decompiler/jd-gui/releases/download/v1.4.0/jd-gui-1.4.0.jar -o /home/gustavo/apps/jd-gui/jd-gui-1.4.0.jar
+
+  - name: Install vscode
+    shell: curl -L https://go.microsoft.com/fwlink/?LinkID=760867 -o /tmp/vscode.rpm && dnf install -y /tmp/vscode.rpm
+
+  - name: Configure docker repo
+    copy: src=docker.repo dest=/etc/yum.repos.d/docker.repo
+
+  - name: Create group docker
+    group: name=docker state=present
+
+  - name: Add user to docker group
+    shell: usermod -aG docker gustavo
+
+  - name: Install docker
+    yum: name=docker-engine state=latest
+
+  - name: Install docker-compose
+    shell: curl -L https://github.com/docker/compose/releases/download/1.8.1/run.sh > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+
+  - name: Install nvm
+    shell: curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+
+  - name: Install latest node
+    shell: nvm install node
