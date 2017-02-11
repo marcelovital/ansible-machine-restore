@@ -1,14 +1,15 @@
 - name: Restore machine
   hosts: 127.0.0.1
   connection: local
+  become: true
 
   tasks:
 
   - name: Update host
-    yum: name=* state=latest
+    dnf: name=* state=latest
 
   - name: Install essential packages
-    yum: name={{item}} state=latest
+    dnf: name={{item}} state=latest
     with_items:
       - autokey-gtk
       - meld
@@ -28,19 +29,26 @@
       - NetworkManager-openvpn
       - vpnc
       - openvpn
+      - vim
+      - gpaste
+      - gnome-shell-extension-gpaste
+      - libselinux-python
+      - java-1.8.0-openjdk-devel
+      - firefox
+      - kernel-devel
+      - ImageMagick
 
   - name: Install nautilus extensions
-    yum: name={{item}} state=latest
+    dnf: name={{item}} state=latest
     with_items:
-      - nautilus-dropbox
       - nautilus-open-terminal
       - nautilus-extensions
       - nautilus-sendto
 
   - name: Install KVM
-    yum: name={{item}} state=latest
+    dnf: name={{item}} state=latest
     with_items:
-      - @virtualization
+      - '@virtualization'
       - virt-install
       - virt-viewer
       - libvirt-daemon-config-network
@@ -51,6 +59,9 @@
   - name: Enable libvirtd and start it
     service: name=libvirtd enabled=yes state=started
 
+  - name: Disable firewalld
+    service: name=firewalld enabled=no state=stopped
+
   - name: Create apps folder
     file: path=/home/gustavo/apps state=directory owner=gustavo group=gustavo
 
@@ -58,37 +69,87 @@
     file: path=/home/gustavo/.fonts/ state=directory owner=gustavo group=gustavo
 
   - name: Install fonts
-    shell: unzip fonts.zip -d /home/gustavo/.fonts/meslo
+    unarchive: src=fonts.zip dest=/home/gustavo/.fonts/meslo owner=gustavo
 
   - name: Install google chrome
-    shell: dnf install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+    dnf: name=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm state=present
+
+  - name: Download Atom
+    get_url:
+      url: https://atom.io/download/rpm
+      dest: /tmp/atom.rpm
 
   - name: Install Atom
-    shell: curl -L https://atom.io/download/rpm -o /tmp/atom.rpm && dnf install -y /tmp/atom.rpm
+    dnf: name=/tmp/atom.rpm state=present
 
   - name: Install atoms sync-settings plugins
     shell: apm install sync-settings
 
+  - name: Download Sublime
+    get_url:
+      url: https://download.sublimetext.com/sublime_text_3_build_3126_x64.tar.bz2
+      dest: /tmp/sublime.tar.bz2
+
   - name: Install Sublime
-    shell: curl https://download.sublimetext.com/sublime_text_3_build_3126_x64.tar.bz2 -o /tmp/sublime.tar.bz2 && tar -jxvf /tmp/sublime.tar.bz2 -C /home/gustavo/apps/
+    unarchive: src=/tmp/sublime.tar.bz2 dest=/home/gustavo/apps owner=gustavo
 
   - name: Install Dropbox
-    shell: dnf install -y https://www.dropbox.com/download?dl=packages/fedora/nautilus-dropbox-2015.10.28-1.fedora.x86_64.rpm
+    dnf: name=https://www.dropbox.com/download?dl=packages/fedora/nautilus-dropbox-2015.10.28-1.fedora.x86_64.rpm state=present
+
+  - name: Download telegram
+    get_url:
+      url: https://telegram.org/dl/desktop/linux
+      dest: /tmp/telegram.tar.xz
 
   - name: Install telegram
-    shell: curl -L https://telegram.org/dl/desktop/linux -o /tmp/telegram.tar.xz && tar -zxvf /tmp/telegram.tar.xz -C /home/gustavo/apps
+    unarchive: src=/tmp/telegram.tar.xz dest=/home/gustavo/apps owner=gustavo
 
   - name: Install teamviewer
-    shell: dnf install -y https://download.teamviewer.com/download/teamviewer.i686.rpm
+    dnf: name=https://download.teamviewer.com/download/teamviewer.i686.rpm state=present
+
+  - name: Download xmind
+    get_url:
+      url: https://www.xmind.net/xmind/downloads/xmind-8-linux.zip
+      dest: /tmp/xmind-8-linux.zip
+
+  - name: Create folder xmind
+    file: path=/home/gustavo/apps/xmind state=directory owner=gustavo group=gustavo
 
   - name: Install xmind
-    shell: curl https://www.xmind.net/xmind/downloads/xmind-8-linux.zip -o /tmp/xmind-8-linux.zip && unzip /tmp/xmind-8-linux.zip -d /home/gustavo/apps
+    unarchive: src=/tmp/xmind-8-linux.zip dest=/home/gustavo/apps/xmind owner=gustavo group=gustavo
+
+  - name: Create folder jd-gui
+    file: path=/home/gustavo/apps/jd-gui state=directory owner=gustavo group=gustavo
 
   - name: Install jd-gui
-    shell: curl https://github.com/java-decompiler/jd-gui/releases/download/v1.4.0/jd-gui-1.4.0.jar -o /home/gustavo/apps/jd-gui/jd-gui-1.4.0.jar
+    get_url:
+      url: https://github.com/java-decompiler/jd-gui/releases/download/v1.4.0/jd-gui-1.4.0.jar
+      dest: /home/gustavo/apps/jd-gui/jd-gui-1.4.0.jar
+      group: gustavo
+      owner: gustavo
+
+  - name: Download vscode
+    get_url:
+      url: https://go.microsoft.com/fwlink/?LinkID=760867
+      dest: /tmp/vscode.rpm
 
   - name: Install vscode
-    shell: curl -L https://go.microsoft.com/fwlink/?LinkID=760867 -o /tmp/vscode.rpm && dnf install -y /tmp/vscode.rpm
+    dnf: name=/tmp/vscode.rpm state=present
+
+  - name: Download flash player
+    dnf: name=http://linuxdownload.adobe.com/adobe-release/adobe-release-x86_64-1.0-1.noarch.rpm state=present
+
+  - name: Import flash player repo key
+    shell: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-adobe-linux
+
+  - name: Install flash player
+    dnf: name=flash-plugin state=present
+
+  - name: Install oracle jdk
+    shell: cd /opt && curl -s -k -L -C - -b "oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jdk-8u111-linux-x64.tar.gz | tar xfz -
+
+  - name: Configure java plugin on firefox
+    shell: ln -s /opt/jdk1.8.0_111/jre/lib/amd64/libnpjp2.so /usr/lib64/mozilla/plugins/libjavaplugin.so
 
   - name: Configure docker repo
     copy: src=docker.repo dest=/etc/yum.repos.d/docker.repo
@@ -100,13 +161,37 @@
     shell: usermod -aG docker gustavo
 
   - name: Install docker
-    yum: name=docker-engine state=latest
+    dnf: name=docker-engine state=latest
 
   - name: Install docker-compose
     shell: curl -L https://github.com/docker/compose/releases/download/1.8.1/run.sh > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
 
-  - name: Install nvm
-    shell: curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+  - name: Disable selinux
+    selinux: state=disabled
+#  - name: Install system monitor
+#mkdir ~/git_projects
+#cd ~/git_projects
+#git clone git://github.com/paradoxxxzero/gnome-shell-system-monitor-applet.git
+#mkdir -p ~/.local/share/gnome-shell/extensions
+#cd ~/.local/share/gnome-shell/extensions
+#cp -r ~/git_projects/gnome-shell-system-monitor-applet/system-monitor@paradoxxx.zero.gmail.com .
+#rm -rf ~/git_projects
+#gnome-shell-extension-tool --enable-extension=system-monitor@paradoxxx.zero.gmail.com
 
-  - name: Install latest node
-    shell: nvm install node
+ - name: Install nvm
+   shell: curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
+
+ - name: Install latest node
+   shell: nvm install node
+
+   - name: Install maven
+     shell: export MAVEN_VERSION=3.3.9 && curl -sSL http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | bsdtar xzf - -C /usr/share &&         mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven
+
+   - name: Install android sdk
+     shell:
+
+   - name: Set enviroment ANDROID_HOME
+     shell:
+
+   - name: Install Apache Directory Studio
+     shell:
