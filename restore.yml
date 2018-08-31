@@ -17,7 +17,6 @@
       - gnome-tweak-tool
       - gparted
       - telnet
-      - keepassx
       - httpie
       - oathtool
       - unzip
@@ -37,6 +36,13 @@
       - firefox
       - kernel-devel
       - ImageMagick
+      - expect
+      - grive2
+      - tilix
+      - chrome-gnome-shell
+      - system-config-printer
+      - adapta-backgrounds.noarch
+      - adapta-gtk-theme.noarch
 
   - name: Install nautilus extensions
     dnf: name={{item}} state=latest
@@ -54,7 +60,7 @@
       - libvirt-daemon-config-network
 
   - name: Add user to docker group
-    shell: usermod -aG libvirt gustavo
+    shell: usermod -aG libvirt pbarbosa
 
   - name: Enable libvirtd and start it
     service: name=libvirtd enabled=yes state=started
@@ -63,13 +69,14 @@
     service: name=firewalld enabled=no state=stopped
 
   - name: Create apps folder
-    file: path=/home/gustavo/apps state=directory owner=gustavo group=gustavo
+    file: path=/home/pbarbosa/apps state=directory owner=pbarbosa group=pbarbosa
 
   - name: Create fonts folder
-    file: path=/home/gustavo/.fonts/ state=directory owner=gustavo group=gustavo
+    file: path=/home/pbarbosa/.fonts/ state=directory owner=pbarbosa group=pbarbosa
+    file: path=/home/pbarbosa/.fonts/meslo state=directory owner=pbarbosa group=pbarbosa
 
   - name: Install fonts
-    unarchive: src=fonts.zip dest=/home/gustavo/.fonts/meslo owner=gustavo
+    unarchive: src=fonts.zip dest=/home/pbarbosa/.fonts/meslo owner=pbarbosa
 
   - name: Install google chrome
     dnf: name=https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm state=present
@@ -85,14 +92,6 @@
   - name: Install atoms sync-settings plugins
     shell: apm install sync-settings
 
-  - name: Download Sublime
-    get_url:
-      url: https://download.sublimetext.com/sublime_text_3_build_3126_x64.tar.bz2
-      dest: /tmp/sublime.tar.bz2
-
-  - name: Install Sublime
-    unarchive: src=/tmp/sublime.tar.bz2 dest=/home/gustavo/apps owner=gustavo
-
   - name: Install Dropbox
     dnf: name=https://www.dropbox.com/download?dl=packages/fedora/nautilus-dropbox-2015.10.28-1.fedora.x86_64.rpm state=present
 
@@ -102,39 +101,11 @@
       dest: /tmp/telegram.tar.xz
 
   - name: Install telegram
-    unarchive: src=/tmp/telegram.tar.xz dest=/home/gustavo/apps owner=gustavo
+    unarchive: src=/tmp/telegram.tar.xz dest=/home/pbarbosa/apps owner=pbarbosa
 
-  - name: Install teamviewer
-    dnf: name=https://download.teamviewer.com/download/teamviewer.i686.rpm state=present
+  - name: Install RPM Fusion
+    dnf: name=http://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-28.noarch.rpm state=present
 
-  - name: Download xmind
-    get_url:
-      url: https://www.xmind.net/xmind/downloads/xmind-8-linux.zip
-      dest: /tmp/xmind-8-linux.zip
-
-  - name: Create folder xmind
-    file: path=/home/gustavo/apps/xmind state=directory owner=gustavo group=gustavo
-
-  - name: Install xmind
-    unarchive: src=/tmp/xmind-8-linux.zip dest=/home/gustavo/apps/xmind owner=gustavo group=gustavo
-
-  - name: Create folder jd-gui
-    file: path=/home/gustavo/apps/jd-gui state=directory owner=gustavo group=gustavo
-
-  - name: Install jd-gui
-    get_url:
-      url: https://github.com/java-decompiler/jd-gui/releases/download/v1.4.0/jd-gui-1.4.0.jar
-      dest: /home/gustavo/apps/jd-gui/jd-gui-1.4.0.jar
-      group: gustavo
-      owner: gustavo
-
-  - name: Download vscode
-    get_url:
-      url: https://go.microsoft.com/fwlink/?LinkID=760867
-      dest: /tmp/vscode.rpm
-
-  - name: Install vscode
-    dnf: name=/tmp/vscode.rpm state=present
 
   - name: Download flash player
     dnf: name=http://linuxdownload.adobe.com/adobe-release/adobe-release-x86_64-1.0-1.noarch.rpm state=present
@@ -145,11 +116,8 @@
   - name: Install flash player
     dnf: name=flash-plugin state=present
 
-  - name: Install oracle jdk
-    shell: cd /opt && curl -s -k -L -C - -b "oraclelicense=accept-securebackup-cookie" http://download.oracle.com/otn-pub/java/jdk/8u111-b14/jdk-8u111-linux-x64.tar.gz | tar xfz -
-
-  - name: Configure java plugin on firefox
-    shell: ln -s /opt/jdk1.8.0_111/jre/lib/amd64/libnpjp2.so /usr/lib64/mozilla/plugins/libjavaplugin.so
+  - name: Install Adobe Reader9
+    dnf: name=http://ardownload.adobe.com/pub/adobe/reader/unix/9.x/9.5.5/enu/AdbeRdr9.5.5-1_i486linux_enu.rpm state=present
 
   - name: Configure docker repo
     copy: src=docker.repo dest=/etc/yum.repos.d/docker.repo
@@ -158,7 +126,7 @@
     group: name=docker state=present
 
   - name: Add user to docker group
-    shell: usermod -aG docker gustavo
+    shell: usermod -aG docker pbarbosa
 
   - name: Install docker
     dnf: name=docker-engine state=latest
@@ -166,32 +134,35 @@
   - name: Install docker-compose
     shell: curl -L https://github.com/docker/compose/releases/download/1.8.1/run.sh > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
 
-  - name: Disable selinux
-    selinux: state=disabled
-#  - name: Install system monitor
-#mkdir ~/git_projects
-#cd ~/git_projects
-#git clone git://github.com/paradoxxxzero/gnome-shell-system-monitor-applet.git
-#mkdir -p ~/.local/share/gnome-shell/extensions
-#cd ~/.local/share/gnome-shell/extensions
-#cp -r ~/git_projects/gnome-shell-system-monitor-applet/system-monitor@paradoxxx.zero.gmail.com .
-#rm -rf ~/git_projects
-#gnome-shell-extension-tool --enable-extension=system-monitor@paradoxxx.zero.gmail.com
+  - name: Install CODECS
+    dnf: name={{item}} state=latest
+    with_items:
+      - flac
+      - ffmpeg
+      - gpac-libs
+      - lame
+      - libfc14audiodecoder
+      - mencoder
+      - mplayer
+      - x264
+      - x265
+      - gstreamer-plugins-espeak
+      - gstreamer-plugins-fc
+      - gstreamer-rtsp
+      - gstreamer-plugins-good
+      - gstreamer-plugins-bad
+      - gstreamer-plugins-bad-free-extras
+      - gstreamer-ffmpeg
+      - gstreamer1-plugins-base
+      - gstreamer1-libav
+      - gstreamer1-plugins-bad-free-extras
+      - gstreamer1-plugins-bad-freeworld
+      - gstreamer1-plugins-base-tools
+      - gstreamer1-plugins-good-extras
+      - gstreamer1-plugins-ugly
+      - gstreamer1-plugins-bad-free
+      - gstreamer1-plugins-good
 
- - name: Install nvm
-   shell: curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.32.1/install.sh | bash
 
- - name: Install latest node
-   shell: nvm install node
-
-   - name: Install maven
-     shell: export MAVEN_VERSION=3.3.9 && curl -sSL http://archive.apache.org/dist/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | bsdtar xzf - -C /usr/share &&         mv /usr/share/apache-maven-$MAVEN_VERSION /usr/share/maven
-
-   - name: Install android sdk
-     shell:
-
-   - name: Set enviroment ANDROID_HOME
-     shell:
-
-   - name: Install Apache Directory Studio
-     shell:
+  - name: Install WARSAW (Para acesso à bancos como CAIXA, BB, Itaú, BRB)
+    dnf: name=https://cloud.gastecnologia.com.br/gas/diagnostico/warsaw_setup_64.rpm state=present
